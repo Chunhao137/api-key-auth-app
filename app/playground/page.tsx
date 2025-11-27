@@ -12,7 +12,7 @@ export default function PlaygroundPage() {
   const { showToast } = useToast();
   const router = useRouter();
 
-  const handleSubmit = (e?: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = (e?: React.FormEvent<HTMLFormElement> | React.MouseEvent<HTMLButtonElement>) => {
     if (e) {
       e.preventDefault();
       e.stopPropagation();

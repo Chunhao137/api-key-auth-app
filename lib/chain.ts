@@ -39,20 +39,20 @@ export function createLLM(openAIApiKey?: string): ChatOpenAI {
  * @returns A chain that can be invoked with { readmeContent }
  */
 export function createStrictReadmeSummaryChain(llm: BaseChatModel) {
+  // Bind structured output directly to the model
+  const structuredModel = llm.withStructuredOutput(repoSummarySchema, {
+    name: "repo_summary",
+    strict: true,
+  });
+
   // Create the prompt template
   const prompt = ChatPromptTemplate.fromMessages([
     ["system", "You are an expert technical summarizer. Given the README content of a GitHub repository, summarize its purpose and functionality. Respond only with information taken from the README."],
     ["human", "Summarize this GitHub repository from this readme file content:\n{readmeContent}"],
   ]);
 
-  // Create LLM with structured output
-  const structuredLLM = llm.withStructuredOutput(repoSummarySchema, {
-    name: "repo_summary",
-    strict: true,
-  });
-
-  // Create chain: prompt -> structured LLM
-  const chain = prompt.pipe(structuredLLM);
+  // Create chain: prompt -> structured model
+  const chain = prompt.pipe(structuredModel);
 
   return chain;
 }
@@ -78,5 +78,30 @@ export async function summarizeReadmeWithLangChain(
   const result = await chain.invoke({ readmeContent });
   
   return result;
+}
+
+/**
+ * Summarizes README content with error handling.
+ * This is a higher-level function that wraps the summarization logic.
+ *
+ * @param readmeContent - Content of the GitHub README file
+ * @param llm - A LangChain LLM instance (optional, will create one if not provided)
+ * @param openAIApiKey - OpenAI API key (optional, only used if llm is not provided)
+ * @returns Promise<{ summary: string, cool_facts: string[] }> or throws error
+ */
+export async function summarizeReadme(
+  readmeContent: string,
+  llm?: BaseChatModel,
+  openAIApiKey?: string
+): Promise<{ summary: string; cool_facts: string[] }> {
+  try {
+    return await summarizeReadmeWithLangChain(readmeContent, llm, openAIApiKey);
+  } catch (error) {
+    console.error("Error summarizing README:", error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    console.error("Error details:", { errorMessage, errorStack });
+    throw new Error(`Failed to summarize README: ${errorMessage}`);
+  }
 }
 

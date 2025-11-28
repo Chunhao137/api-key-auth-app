@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
-import { summarizeReadmeWithLangChain } from "@/lib/chain";
+import { summarizeReadme } from "@/lib/chain";
 
 export async function POST(request: NextRequest) {
   try {
@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
 
     // Fetch README content from GitHub
     const readmeContent: string | null = await fetchReadmeFromGitHub(repoInput);
-    console.log("readmeContent", readmeContent);
+
     
     if (!readmeContent) {
       return NextResponse.json(
@@ -88,17 +88,14 @@ export async function POST(request: NextRequest) {
 
     // Summarize README using LangChain
     try {
-      const summary = await summarizeReadmeWithLangChain(readmeContent);
+      const summary = await summarizeReadme(readmeContent);
       
       return NextResponse.json({
         summary: summary.summary,
         cool_facts: summary.cool_facts,
       });
     } catch (summaryError) {
-      console.error("Error summarizing README:", summaryError);
       const errorMessage = summaryError instanceof Error ? summaryError.message : String(summaryError);
-      const errorStack = summaryError instanceof Error ? summaryError.stack : undefined;
-      console.error("Error details:", { errorMessage, errorStack });
       return NextResponse.json(
         { 
           error: "Failed to summarize README. Please try again later.",

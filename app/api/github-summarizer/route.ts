@@ -62,7 +62,15 @@ export async function POST(request: NextRequest) {
     }
 
     // API key is valid - proceed with the request
-    const body = await request.json().catch(() => ({}));
+    let body: any = {};
+    try {
+      body = await request.json();
+    } catch (jsonError) {
+      return NextResponse.json(
+        { error: "Invalid JSON in request body" },
+        { status: 400 }
+      );
+    }
 
     // Accept 'githubUrl' (same as 'repoUrl'), or 'repo' field
     const repoInput: string | undefined = body.githubUrl || body.repoUrl || body.repo;

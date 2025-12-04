@@ -1,6 +1,8 @@
  "use client";
 
 import { useMemo, useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/notifications";
@@ -53,6 +55,8 @@ const dbToUi = (db: DbApiKey): ApiKey => ({
 });
 
 export default function DashboardsPage() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
   const [keys, setKeys] = useState<ApiKey[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -71,10 +75,19 @@ export default function DashboardsPage() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const { showToast } = useToast();
 
-  // Fetch keys from Supabase
+  // Check authentication and redirect if not signed in
   useEffect(() => {
-    fetchKeys();
-  }, []);
+    if (status === "unauthenticated") {
+      router.push("/");
+    }
+  }, [status, router]);
+
+  // Fetch keys from Supabase (only if authenticated)
+  useEffect(() => {
+    if (status === "authenticated") {
+      fetchKeys();
+    }
+  }, [status]);
 
   const fetchKeys = async () => {
     try {
@@ -312,6 +325,24 @@ export default function DashboardsPage() {
       setError("Failed to copy to clipboard");
     }
   };
+
+  // Show loading state while checking authentication
+  if (status === "loading") {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-zinc-50 dark:bg-zinc-950">
+        <div className="text-center">
+          <div className="mb-4 text-lg font-medium text-zinc-900 dark:text-zinc-50">
+            Loading...
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Redirect if not authenticated (this is a fallback, useEffect should handle redirect)
+  if (status === "unauthenticated") {
+    return null;
+  }
 
   return (
     <div className="flex min-h-screen bg-zinc-50 font-sans text-zinc-900 dark:bg-zinc-950 dark:text-zinc-50">

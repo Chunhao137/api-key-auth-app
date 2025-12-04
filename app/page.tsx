@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { LoginButton } from "@/components/auth/login-button";
 
 export default function Home() {
   return (
@@ -23,9 +24,10 @@ export default function Home() {
           </p>
         </div>
         <div className="flex w-full flex-col gap-4 text-base font-medium sm:flex-row">
+          <LoginButton />
           <Link
             href="/dashboards"
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[200px]"
+            className="flex h-12 w-full items-center justify-center gap-2 rounded-full border border-solid border-black/[.08] px-5 text-zinc-900 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:text-zinc-50 dark:hover:bg-[#1a1a1a] md:w-[200px]"
           >
             Go to API Key Dashboard
           </Link>

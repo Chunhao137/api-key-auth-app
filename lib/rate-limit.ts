@@ -138,7 +138,7 @@ export async function incrementUsageAndCheckLimit(
       last_used_at: new Date().toISOString(),
     })
     .eq("id", apiKeyData.id)
-    .select("id, usage_count, is_active")
+    .select("id, usage_count, monthly_limit, is_active")
     .single();
 
   if (updateError) {

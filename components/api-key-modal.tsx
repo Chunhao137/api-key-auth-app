@@ -20,7 +20,6 @@ interface ApiKeyModalProps {
   onSubmit: (data: {
     name: string;
     keyType: "dev" | "prod";
-    monthlyLimit: number | null;
   }) => void;
   mode: "create" | "edit";
   editingKey?: ApiKey | null;
@@ -35,8 +34,6 @@ export default function ApiKeyModal({
 }: ApiKeyModalProps) {
   const [name, setName] = useState("");
   const [keyType, setKeyType] = useState<"dev" | "prod">("dev");
-  const [limitEnabled, setLimitEnabled] = useState(false);
-  const [limitValue, setLimitValue] = useState("1000");
 
   // Reset form when modal opens/closes or editingKey changes
   useEffect(() => {
@@ -44,17 +41,10 @@ export default function ApiKeyModal({
       if (mode === "edit" && editingKey) {
         setName(editingKey.name);
         setKeyType((editingKey.keyType as "dev" | "prod") || "dev");
-        setLimitEnabled(
-          editingKey.monthlyLimit !== null &&
-            editingKey.monthlyLimit !== undefined
-        );
-        setLimitValue(editingKey.monthlyLimit?.toString() || "1000");
       } else {
         // Reset for create mode
         setName("");
         setKeyType("dev");
-        setLimitEnabled(false);
-        setLimitValue("1000");
       }
     }
   }, [isOpen, mode, editingKey]);
@@ -66,15 +56,12 @@ export default function ApiKeyModal({
     onSubmit({
       name: trimmed,
       keyType,
-      monthlyLimit: limitEnabled ? parseInt(limitValue) || null : null,
     });
   };
 
   const handleClose = () => {
     setName("");
     setKeyType("dev");
-    setLimitEnabled(false);
-    setLimitValue("1000");
     onClose();
   };
 
@@ -88,8 +75,8 @@ export default function ApiKeyModal({
         </h2>
         <p className="mt-2 text-center text-xs text-zinc-500 dark:text-zinc-400">
           {mode === "create"
-            ? "Enter a name and limit for the new API key."
-            : "Update the name, type, and limit for this API key."}
+            ? "Enter a name for the new API key."
+            : "Update the name and type for this API key."}
         </p>
 
         {/* Key name */}
@@ -168,31 +155,6 @@ export default function ApiKeyModal({
               </span>
             </button>
           </div>
-        </div>
-
-        {/* Limit */}
-        <div className="mt-5 space-y-2">
-          <label className="flex items-center gap-2 text-xs text-zinc-700 dark:text-zinc-200">
-            <input
-              type="checkbox"
-              checked={limitEnabled}
-              onChange={(e) => setLimitEnabled(e.target.checked)}
-              className="h-3.5 w-3.5 rounded border-zinc-300 text-sky-500 focus:ring-sky-300 dark:border-zinc-600 dark:bg-zinc-900 dark:focus:ring-sky-700"
-            />
-            <span>Limit monthly usage*</span>
-          </label>
-          <input
-            type="number"
-            value={limitValue}
-            onChange={(e) => setLimitValue(e.target.value)}
-            disabled={!limitEnabled}
-            className="h-9 w-full rounded-xl border border-zinc-300 bg-white px-3 text-xs text-zinc-900 outline-none ring-0 transition disabled:cursor-not-allowed disabled:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50 dark:disabled:bg-zinc-900/60"
-          />
-          <p className="text-[10px] text-zinc-500 dark:text-zinc-500">
-            If the combined usage of all your keys exceeds your account&apos;s
-            allocated usage limit (plan, add-ons, and any pay-as-you-go limit),
-            all requests will be rejected.
-          </p>
         </div>
 
         {/* Actions */}

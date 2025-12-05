@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
 
     // Parse request body
     const body = await request.json();
-    const { name, keyType, monthlyLimit } = body;
+    const { name, keyType } = body;
 
     // Validate required fields
     if (!name || typeof name !== "string" || !name.trim()) {
@@ -106,7 +106,7 @@ export async function POST(request: NextRequest) {
     // Generate new API key
     const newKey = generateKey();
 
-    // Create API key in Supabase
+    // Create API key in Supabase (monthly_limit is managed by admin, not set by users)
     const { data, error } = await supabase
       .from("api_keys")
       .insert({
@@ -114,7 +114,6 @@ export async function POST(request: NextRequest) {
         name: name.trim(),
         key: newKey,
         key_type: keyType || "dev",
-        monthly_limit: monthlyLimit || null,
         is_active: true,
       })
       .select()

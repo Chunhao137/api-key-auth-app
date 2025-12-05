@@ -148,9 +148,7 @@ export async function PATCH(
       updateData.key_type = body.keyType;
     }
 
-    if (body.monthlyLimit !== undefined) {
-      updateData.monthly_limit = body.monthlyLimit === null ? null : Number(body.monthlyLimit);
-    }
+    // Note: monthly_limit is not user-editable and is managed by admin
 
     if (body.isActive !== undefined) {
       updateData.is_active = Boolean(body.isActive);

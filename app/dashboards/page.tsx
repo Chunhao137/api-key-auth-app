@@ -132,7 +132,6 @@ export default function DashboardsPage() {
   const handleCreate = async (data: {
     name: string;
     keyType: "dev" | "prod";
-    monthlyLimit: number | null;
   }) => {
     try {
       setError(null);
@@ -144,7 +143,6 @@ export default function DashboardsPage() {
         body: JSON.stringify({
           name: data.name,
           keyType: data.keyType,
-          monthlyLimit: data.monthlyLimit,
         }),
       });
 
@@ -301,7 +299,6 @@ export default function DashboardsPage() {
   const handleUpdate = async (data: {
     name: string;
     keyType: "dev" | "prod";
-    monthlyLimit: number | null;
   }) => {
     if (!editingKey) return;
 
@@ -315,7 +312,6 @@ export default function DashboardsPage() {
         body: JSON.stringify({
           name: data.name,
           keyType: data.keyType,
-          monthlyLimit: data.monthlyLimit,
         }),
       });
 

@@ -1,64 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
 import { summarizeReadme } from "@/lib/chain";
+import { extractApiKey, checkRateLimit } from "@/lib/rate-limit";
 
 export async function POST(request: NextRequest) {
   try {
-    // Get API key from request headers (Authorization header or x-api-key header)
-    const authHeader = request.headers.get("authorization");
-    const apiKeyHeader = request.headers.get("x-api-key");
+    // Extract API key from request
+    const apiKey = extractApiKey(request);
+
+    // Check rate limit and validate API key
+    const rateLimitResult = await checkRateLimit(apiKey || "");
     
-    // Try to get API key from Authorization header (Bearer token format)
-    let apiKey: string | null = null;
-    
-    if (authHeader && authHeader.startsWith("Bearer ")) {
-      apiKey = authHeader.substring(7);
-    } else if (apiKeyHeader) {
-      apiKey = apiKeyHeader;
-    } else {
-      // Try to get from query parameter as fallback
-      const { searchParams } = new URL(request.url);
-      apiKey = searchParams.get("key");
-    }
-
-    // Validate API key is provided
-    if (!apiKey) {
-      return NextResponse.json(
-        { error: "API key is required. Provide it via Authorization header (Bearer token), x-api-key header, or 'key' query parameter." },
-        { status: 401 }
-      );
-    }
-
-    // Validate API key against Supabase
-    const { data, error } = await supabase
-      .from("api_keys")
-      .select("id, is_active")
-      .eq("key", apiKey)
-      .maybeSingle();
-
-    // Check if there was an error or if the key doesn't exist
-    if (error) {
-      console.error("Supabase error:", error);
-      return NextResponse.json(
-        { error: "Invalid API key" },
-        { status: 401 }
-      );
-    }
-
-    // If no data is returned, the key doesn't exist
-    if (!data) {
-      return NextResponse.json(
-        { error: "Invalid API key" },
-        { status: 401 }
-      );
-    }
-
-    // Check if the key is active
-    if (!data.is_active) {
-      return NextResponse.json(
-        { error: "API key is not active" },
-        { status: 401 }
-      );
+    if (!rateLimitResult.success) {
+      return rateLimitResult.error!;
     }
 
     // API key is valid - proceed with the request
@@ -125,39 +78,14 @@ export async function POST(request: NextRequest) {
 // Also support GET requests if needed
 export async function GET(request: NextRequest) {
   try {
-    // Get API key from request headers or query params
-    const authHeader = request.headers.get("authorization");
-    const apiKeyHeader = request.headers.get("x-api-key");
+    // Extract API key from request
+    const apiKey = extractApiKey(request);
+
+    // Check rate limit and validate API key
+    const rateLimitResult = await checkRateLimit(apiKey || "");
     
-    let apiKey: string | null = null;
-    if (authHeader && authHeader.startsWith("Bearer ")) {
-      apiKey = authHeader.substring(7);
-    } else if (apiKeyHeader) {
-      apiKey = apiKeyHeader;
-    } else {
-      const { searchParams } = new URL(request.url);
-      apiKey = searchParams.get("key");
-    }
-
-    if (!apiKey) {
-      return NextResponse.json(
-        { error: "API key is required. Provide it via Authorization header (Bearer token), x-api-key header, or 'key' query parameter." },
-        { status: 401 }
-      );
-    }
-
-    // Validate API key
-    const { data, error } = await supabase
-      .from("api_keys")
-      .select("id, is_active")
-      .eq("key", apiKey)
-      .maybeSingle();
-
-    if (error || !data || !data.is_active) {
-      return NextResponse.json(
-        { error: "Invalid API key" },
-        { status: 401 }
-      );
+    if (!rateLimitResult.success) {
+      return rateLimitResult.error!;
     }
 
     // API key is valid

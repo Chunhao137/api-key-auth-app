@@ -82,6 +82,23 @@ export default function DashboardsPage() {
     }
   }, [status, router]);
 
+  // Auto-open sidebar on desktop view
+  useEffect(() => {
+    const handleResize = () => {
+      // If we're on desktop (lg breakpoint and above), ensure sidebar is open
+      if (window.innerWidth >= 1024) {
+        setIsSidebarOpen(true);
+      }
+    };
+
+    // Check on mount
+    handleResize();
+
+    // Listen for resize events
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   // Fetch keys from Supabase (only if authenticated)
   useEffect(() => {
     if (status === "authenticated") {
@@ -378,19 +395,12 @@ export default function DashboardsPage() {
                 stroke="currentColor"
                 strokeWidth={2}
               >
-                {isSidebarOpen ? (
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                ) : (
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M4 6h16M4 12h16M4 18h16"
-                  />
-                )}
+                {/* Always show hamburger icon on mobile - the X is handled by the sidebar's close button */}
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M4 6h16M4 12h16M4 18h16"
+                />
               </svg>
             </button>
             <div className="text-xs text-zinc-500 dark:text-zinc-400">

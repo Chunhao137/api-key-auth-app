@@ -25,6 +25,10 @@ export const authOptions: NextAuthOptions = {
 
         if (queryError) {
           console.error("Error querying user from Supabase:", queryError);
+          // If table doesn't exist, log it but don't block login
+          if (queryError.code === "42P01" || queryError.message?.includes("does not exist")) {
+            console.error("Users table does not exist. Please run the migration: supabase-migration-users-table.sql");
+          }
           // Don't block login if query fails
           return true;
         }
@@ -103,6 +107,15 @@ export const authOptions: NextAuthOptions = {
   },
   secret: process.env.NEXTAUTH_SECRET,
 };
+
+// Validate required environment variables
+if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+  console.error("Missing Google OAuth credentials");
+}
+
+if (!process.env.NEXTAUTH_SECRET) {
+  console.error("Missing NEXTAUTH_SECRET");
+}
 
 const handler = NextAuth(authOptions);
 

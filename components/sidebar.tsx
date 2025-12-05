@@ -27,7 +27,7 @@ export default function Sidebar({
 
       {/* Sidebar */}
       <aside
-        className={`fixed left-0 top-0 z-50 h-full flex-shrink-0 transform border-r border-zinc-200 bg-white transition-all duration-300 ease-in-out dark:border-zinc-800 dark:bg-zinc-900 lg:relative lg:z-auto ${
+        className={`fixed left-0 top-0 z-50 h-full flex-shrink-0 transform border-r border-zinc-200 bg-white transition-all duration-300 ease-in-out dark:border-zinc-800 dark:bg-zinc-900 lg:relative lg:z-auto lg:translate-x-0 ${
           isSidebarOpen ? "translate-x-0" : "-translate-x-full"
         } ${
           isSidebarCollapsed ? "w-16" : "w-64"

@@ -41,7 +41,7 @@ export default function Sidebar({
                 <div className="flex items-center gap-1">
                   <div className="h-6 w-6 rounded bg-gradient-to-br from-blue-500 to-orange-500" />
                   <span className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
-                    tavily
+                    GitHub Analyzer
                   </span>
                 </div>
               </div>
@@ -283,7 +283,7 @@ export default function Sidebar({
             className={`flex w-full items-center rounded-lg px-3 py-2 text-sm font-medium text-zinc-600 transition hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-50 ${
               isSidebarCollapsed ? "justify-center" : "gap-3"
             }`}
-            title={isSidebarCollapsed ? "Tavily MCP" : undefined}
+            title={isSidebarCollapsed ? "GitHub Analyzer" : undefined}
           >
             <svg
               className="h-5 w-5 flex-shrink-0"
@@ -300,7 +300,7 @@ export default function Sidebar({
             </svg>
             {!isSidebarCollapsed && (
               <>
-                <span>Tavily MCP</span>
+                <span>GitHub Analyzer</span>
                 <svg
                   className="ml-auto h-4 w-4 text-zinc-400"
                   fill="none"

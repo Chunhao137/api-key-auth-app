@@ -4,6 +4,7 @@ import { useMemo, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
+import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/notifications";
 import Sidebar from "@/components/sidebar";
 import ApiKeyModal from "@/components/api-key-modal";
@@ -34,6 +35,11 @@ type DbApiKey = {
   last_used_at: string | null;
   updated_at: string;
 };
+
+const generateKey = () =>
+  `sk_${Math.random().toString(36).slice(2, 10)}_${Math.random()
+    .toString(36)
+    .slice(2, 10)}`;
 
 // Convert database format to UI format
 const dbToUi = (db: DbApiKey): ApiKey => ({
@@ -76,23 +82,6 @@ export default function DashboardsPage() {
     }
   }, [status, router]);
 
-  // Auto-open sidebar on desktop view
-  useEffect(() => {
-    const handleResize = () => {
-      // If we're on desktop (lg breakpoint and above), ensure sidebar is open
-      if (window.innerWidth >= 1024) {
-        setIsSidebarOpen(true);
-      }
-    };
-
-    // Check on mount
-    handleResize();
-
-    // Listen for resize events
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
   // Fetch keys from Supabase (only if authenticated)
   useEffect(() => {
     if (status === "authenticated") {
@@ -104,15 +93,14 @@ export default function DashboardsPage() {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch("/api/api-keys");
-      
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: "Failed to load API keys" }));
-        throw new Error(errorData.error || "Failed to load API keys");
-      }
+      const { data, error: fetchError } = await supabase
+        .from("api_keys")
+        .select("*")
+        .order("created_at", { ascending: false });
 
-      const result = await response.json();
-      setKeys(result.data ? result.data.map(dbToUi) : []);
+      if (fetchError) throw fetchError;
+
+      setKeys(data ? data.map(dbToUi) : []);
     } catch (err) {
       console.error("Error fetching keys:", err);
       setError(
@@ -132,28 +120,27 @@ export default function DashboardsPage() {
   const handleCreate = async (data: {
     name: string;
     keyType: "dev" | "prod";
+    monthlyLimit: number | null;
   }) => {
     try {
       setError(null);
-      const response = await fetch("/api/api-keys", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
+      const newKey = generateKey();
+      const { data: createdData, error: createError } = await supabase
+        .from("api_keys")
+        .insert({
           name: data.name,
-          keyType: data.keyType,
-        }),
-      });
+          key: newKey,
+          key_type: data.keyType,
+          monthly_limit: data.monthlyLimit,
+          is_active: true,
+        })
+        .select()
+        .single();
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: "Failed to create API key" }));
-        throw new Error(errorData.error || "Failed to create API key");
-      }
+      if (createError) throw createError;
 
-      const result = await response.json();
-      if (result.data) {
-        setKeys((prev) => [dbToUi(result.data), ...prev]);
+      if (createdData) {
+        setKeys((prev) => [dbToUi(createdData), ...prev]);
         setNameInput("");
         setIsCreateModalOpen(false);
         showToast("API key created successfully");
@@ -172,22 +159,15 @@ export default function DashboardsPage() {
 
     try {
       setError(null);
-      const response = await fetch(`/api/api-keys/${id}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ name: trimmed }),
-      });
+      const { error: updateError } = await supabase
+        .from("api_keys")
+        .update({ name: trimmed })
+        .eq("id", id);
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: "Failed to rename API key" }));
-        throw new Error(errorData.error || "Failed to rename API key");
-      }
+      if (updateError) throw updateError;
 
-      const result = await response.json();
       setKeys((prev) =>
-        prev.map((k) => (k.id === id ? dbToUi(result.data) : k))
+        prev.map((k) => (k.id === id ? { ...k, name: trimmed } : k))
       );
       setEditingId(null);
       showToast("API key renamed successfully");
@@ -208,22 +188,15 @@ export default function DashboardsPage() {
 
     try {
       setError(null);
-      const response = await fetch(`/api/api-keys/${id}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ isActive: !wasActive }),
-      });
+      const { error: updateError } = await supabase
+        .from("api_keys")
+        .update({ is_active: !wasActive })
+        .eq("id", id);
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: "Failed to update API key" }));
-        throw new Error(errorData.error || "Failed to update API key");
-      }
+      if (updateError) throw updateError;
 
-      const result = await response.json();
       setKeys((prev) =>
-        prev.map((k) => (k.id === id ? dbToUi(result.data) : k))
+        prev.map((k) => (k.id === id ? { ...k, isActive: !wasActive } : k))
       );
       showToast(
         wasActive
@@ -241,22 +214,25 @@ export default function DashboardsPage() {
   const handleRotate = async (id: string) => {
     try {
       setError(null);
-      const response = await fetch(`/api/api-keys/${id}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ rotate: true }),
-      });
+      const newKey = generateKey();
+      const now = new Date().toISOString();
+      const { error: updateError } = await supabase
+        .from("api_keys")
+        .update({
+          key: newKey,
+          last_used_at: now,
+          is_active: true,
+        })
+        .eq("id", id);
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: "Failed to rotate API key" }));
-        throw new Error(errorData.error || "Failed to rotate API key");
-      }
+      if (updateError) throw updateError;
 
-      const result = await response.json();
       setKeys((prev) =>
-        prev.map((k) => (k.id === id ? dbToUi(result.data) : k))
+        prev.map((k) =>
+          k.id === id
+            ? { ...k, key: newKey, lastUsedAt: now, isActive: true }
+            : k
+        )
       );
       showToast("API key rotated successfully");
     } catch (err) {
@@ -272,14 +248,12 @@ export default function DashboardsPage() {
 
     try {
       setError(null);
-      const response = await fetch(`/api/api-keys/${id}`, {
-        method: "DELETE",
-      });
+      const { error: deleteError } = await supabase
+        .from("api_keys")
+        .delete()
+        .eq("id", id);
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: "Failed to delete API key" }));
-        throw new Error(errorData.error || "Failed to delete API key");
-      }
+      if (deleteError) throw deleteError;
 
       setKeys((prev) => prev.filter((k) => k.id !== id));
       showToast("API key deleted successfully", "error");
@@ -299,26 +273,22 @@ export default function DashboardsPage() {
   const handleUpdate = async (data: {
     name: string;
     keyType: "dev" | "prod";
+    monthlyLimit: number | null;
   }) => {
     if (!editingKey) return;
 
     try {
       setError(null);
-      const response = await fetch(`/api/api-keys/${editingKey.id}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
+      const { error: updateError } = await supabase
+        .from("api_keys")
+        .update({
           name: data.name,
-          keyType: data.keyType,
-        }),
-      });
+          key_type: data.keyType,
+          monthly_limit: data.monthlyLimit,
+        })
+        .eq("id", editingKey.id);
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: "Failed to update API key" }));
-        throw new Error(errorData.error || "Failed to update API key");
-      }
+      if (updateError) throw updateError;
 
       // Refresh keys from database
       await fetchKeys();
@@ -408,12 +378,19 @@ export default function DashboardsPage() {
                 stroke="currentColor"
                 strokeWidth={2}
               >
-                {/* Always show hamburger icon on mobile - the X is handled by the sidebar's close button */}
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M4 6h16M4 12h16M4 18h16"
-                />
+                {isSidebarOpen ? (
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                ) : (
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M4 6h16M4 12h16M4 18h16"
+                  />
+                )}
               </svg>
             </button>
             <div className="text-xs text-zinc-500 dark:text-zinc-400">
@@ -708,7 +685,10 @@ export default function DashboardsPage() {
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
         onSubmit={(data) => {
-          handleCreate(data);
+          handleCreate({
+            ...data,
+            monthlyLimit: null,
+          });
           setIsCreateModalOpen(false);
         }}
         mode="create"
@@ -722,7 +702,10 @@ export default function DashboardsPage() {
           setEditingKey(null);
         }}
         onSubmit={(data) => {
-          handleUpdate(data);
+          handleUpdate({
+            ...data,
+            monthlyLimit: editingKey?.monthlyLimit ?? null,
+          });
         }}
         mode="edit"
         editingKey={editingKey}

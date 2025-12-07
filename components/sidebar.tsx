@@ -1,6 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
+import { signOut, useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
 interface SidebarProps {
   isSidebarOpen: boolean;
@@ -15,6 +18,32 @@ export default function Sidebar({
   isSidebarCollapsed,
   setIsSidebarCollapsed,
 }: SidebarProps) {
+  const router = useRouter();
+  const { data: session } = useSession();
+
+  const handleLogout = async () => {
+    await signOut({ redirect: false });
+    router.push("/");
+  };
+
+  // Get user initials for avatar
+  const getUserInitials = () => {
+    if (session?.user?.name) {
+      return session.user.name
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2);
+    }
+    if (session?.user?.email) {
+      return session.user.email[0].toUpperCase();
+    }
+    return "U";
+  };
+
+  const userName = session?.user?.name || session?.user?.email || "User";
+
   return (
     <>
       {/* Sidebar Overlay for Mobile */}
@@ -176,48 +205,6 @@ export default function Sidebar({
             className={`flex w-full items-center rounded-lg px-3 py-2 text-sm font-medium text-zinc-600 transition hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-50 ${
               isSidebarCollapsed ? "justify-center" : "gap-3"
             }`}
-            title={isSidebarCollapsed ? "Use Cases" : undefined}
-          >
-            <svg
-              className="h-5 w-5 flex-shrink-0"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"
-              />
-            </svg>
-            {!isSidebarCollapsed && <span>Use Cases</span>}
-          </button>
-          <button
-            className={`flex w-full items-center rounded-lg px-3 py-2 text-sm font-medium text-zinc-600 transition hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-50 ${
-              isSidebarCollapsed ? "justify-center" : "gap-3"
-            }`}
-            title={isSidebarCollapsed ? "Billing" : undefined}
-          >
-            <svg
-              className="h-5 w-5 flex-shrink-0"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-              />
-            </svg>
-            {!isSidebarCollapsed && <span>Billing</span>}
-          </button>
-          <button
-            className={`flex w-full items-center rounded-lg px-3 py-2 text-sm font-medium text-zinc-600 transition hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-50 ${
-              isSidebarCollapsed ? "justify-center" : "gap-3"
-            }`}
             title={isSidebarCollapsed ? "Settings" : undefined}
           >
             <svg
@@ -279,30 +266,32 @@ export default function Sidebar({
               </>
             )}
           </button>
-          <button
-            className={`flex w-full items-center rounded-lg px-3 py-2 text-sm font-medium text-zinc-600 transition hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-50 ${
-              isSidebarCollapsed ? "justify-center" : "gap-3"
-            }`}
-            title={isSidebarCollapsed ? "GitHub Analyzer" : undefined}
-          >
-            <svg
-              className="h-5 w-5 flex-shrink-0"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-            {!isSidebarCollapsed && (
-              <>
-                <span>GitHub Analyzer</span>
+        </nav>
+
+        {/* User Profile and Logout */}
+        <div className="border-t border-zinc-200 p-3 dark:border-zinc-800">
+          {isSidebarCollapsed ? (
+            <div className="flex flex-col items-center gap-2">
+              {session?.user?.image ? (
+                <Image
+                  src={session.user.image}
+                  alt={userName}
+                  width={32}
+                  height={32}
+                  className="h-8 w-8 rounded-full"
+                />
+              ) : (
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-500 text-xs font-medium text-white">
+                  {getUserInitials()}
+                </div>
+              )}
+              <button
+                onClick={handleLogout}
+                className="flex items-center justify-center rounded-lg p-2 text-zinc-600 transition hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-50"
+                title="Logout"
+              >
                 <svg
-                  className="ml-auto h-4 w-4 text-zinc-400"
+                  className="h-5 w-5"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -311,77 +300,54 @@ export default function Sidebar({
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth={2}
-                    d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                    d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
                   />
                 </svg>
-              </>
-            )}
-          </button>
-        </nav>
-
-        {/* User Profile */}
-        <div className="border-t border-zinc-200 p-3 dark:border-zinc-800">
-          {isSidebarCollapsed ? (
-            <div className="flex justify-center">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg transition hover:bg-zinc-100 dark:hover:bg-zinc-800">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-500 text-xs font-medium text-white">
-                  C
-                </div>
-              </div>
+              </button>
             </div>
           ) : (
-            <button className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm font-medium text-zinc-700 transition hover:bg-zinc-100 dark:text-zinc-200 dark:hover:bg-zinc-800">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-500 text-xs font-medium text-white">
-                C
-              </div>
+            <div className="flex w-full items-center gap-3 rounded-lg px-3 py-2">
+              {session?.user?.image ? (
+                <Image
+                  src={session.user.image}
+                  alt={userName}
+                  width={32}
+                  height={32}
+                  className="h-8 w-8 rounded-full"
+                />
+              ) : (
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-500 text-xs font-medium text-white">
+                  {getUserInitials()}
+                </div>
+              )}
               <div className="flex-1">
                 <p className="text-sm font-medium text-zinc-900 dark:text-zinc-50">
-                  charles wang
+                  {userName}
                 </p>
               </div>
-              <svg
-                className="h-4 w-4 text-zinc-400"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
+              <button
+                onClick={handleLogout}
+                className="flex items-center justify-center rounded-lg p-2 text-zinc-600 transition hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-50"
+                title="Logout"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 5l7 7-7 7"
-                />
-              </svg>
-            </button>
+                <svg
+                  className="h-5 w-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                  />
+                </svg>
+              </button>
+            </div>
           )}
         </div>
-
-        {/* Expand button when collapsed */}
-        {isSidebarCollapsed && (
-          <div className="border-t border-zinc-200 p-3 dark:border-zinc-800">
-            <button
-              onClick={() => setIsSidebarCollapsed(false)}
-              className="flex w-full items-center justify-center rounded-lg p-2 text-zinc-600 transition hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-50"
-              aria-label="Expand sidebar"
-            >
-              <svg
-                className="h-5 w-5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M13 5l7 7-7 7M5 5l7 7-7 7"
-                />
-              </svg>
-            </button>
-          </div>
-        )}
       </aside>
     </>
   );
 }
-
